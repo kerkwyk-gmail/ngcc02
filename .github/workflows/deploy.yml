@@ -5,14 +5,13 @@ on:
     branches: [main]
 
 env:
-  GCP_PROJECT_ID: REPLACE_WITH_YOUR_PROJECT_ID
+  GCP_PROJECT_ID: ngcc02-poc
   GCP_REGION: us-central1
   ARTIFACT_REPO: app-images
   IMAGE_NAME: onboarding-app
   SERVICE_NAME: onboarding-app
-  # Full resource name from the "gcp-setup" scripts - see gcp-setup/README.md
-  WORKLOAD_IDENTITY_PROVIDER: projects/REPLACE_WITH_PROJECT_NUMBER/locations/global/workloadIdentityPools/github-pool/providers/github-provider
-  DEPLOYER_SA: github-actions-deployer@REPLACE_WITH_YOUR_PROJECT_ID.iam.gserviceaccount.com
+  WORKLOAD_IDENTITY_PROVIDER: projects/526946104361/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+  DEPLOYER_SA: github-actions-deployer@ngcc02-poc.iam.gserviceaccount.com
 
 permissions:
   contents: read
