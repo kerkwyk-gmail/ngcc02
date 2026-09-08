@@ -1,0 +1,53 @@
+name: Build and Deploy to Cloud Run
+
+on:
+  push:
+    branches: [main]
+
+env:
+  GCP_PROJECT_ID: REPLACE_WITH_YOUR_PROJECT_ID
+  GCP_REGION: us-central1
+  ARTIFACT_REPO: app-images
+  IMAGE_NAME: onboarding-app
+  SERVICE_NAME: onboarding-app
+  # Full resource name from the "gcp-setup" scripts - see gcp-setup/README.md
+  WORKLOAD_IDENTITY_PROVIDER: projects/REPLACE_WITH_PROJECT_NUMBER/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+  DEPLOYER_SA: github-actions-deployer@REPLACE_WITH_YOUR_PROJECT_ID.iam.gserviceaccount.com
+
+permissions:
+  contents: read
+  id-token: write   # required for Workload Identity Federation - no long-lived key ever stored here
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.DEPLOYER_SA }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Build image
+        run: |
+          docker build -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+
+      - name: Push image
+        run: |
+          docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.GCP_REGION }}
+          image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
