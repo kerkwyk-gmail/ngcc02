@@ -9,16 +9,17 @@ set -euo pipefail
 #
 # Fill in every REPLACE_ME value before running.
 
-PROJECT_ID="REPLACE_ME_your-gcp-project-id"
+PROJECT_ID="ngcc02-poc"
 REGION="us-central1"
 REPO_NAME="app-images"
 SA_NAME="github-actions-deployer"
-GITHUB_ORG="REPLACE_ME_your-github-org-or-username"
-GITHUB_REPO="REPLACE_ME_your-repo-name"
+GITHUB_ORG="kerkwyk-gmail"
+GITHUB_REPO="ngcc02"
 POOL_ID="github-pool"
 PROVIDER_ID="github-provider"
 
 echo "== Confirming project =="
+gcloud config set account kerkwyk@gmail.com
 gcloud config set project "$PROJECT_ID"
 PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
 echo "Project number: $PROJECT_NUMBER"
