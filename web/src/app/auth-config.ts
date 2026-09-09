@@ -8,7 +8,5 @@ export const authConfig: AuthConfig = {
   responseType: 'code',
   scope: 'openid profile email',
   strictDiscoveryDocumentValidation: false,
-  useHashLocationStrategy: true,
-  skipIssuerCheck: false,
   oidc: true,
 };

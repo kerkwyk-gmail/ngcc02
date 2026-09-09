@@ -28,24 +28,20 @@ export class AuthService {
       console.log('Discovery document failed, using static config');
     });
 
-    // Check if we have a token from the callback
-    if (window.location.hash && window.location.hash.includes('code=')) {
-      try {
-        await this.oauthService.tryLogin();
-      } catch (error) {
-        console.error('Login failed:', error);
-      }
-    }
+    // Try to restore the token if the user is already logged in
+    await this.oauthService.tryLoginCodeFlow().catch(() => {
+      console.log('No valid session found');
+    });
 
     this.isAuthenticated$.next(this.oauthService.hasValidAccessToken());
     
     if (this.hasValidToken()) {
-      await this.loadUserInfo();
+      await this.loadUserInfo().toPromise();
     }
   }
 
   login(): void {
-    this.oauthService.initImplicitFlow();
+    this.oauthService.initCodeFlow();
   }
 
   logout(): void {
@@ -74,6 +70,7 @@ export class AuthService {
     return this.http.get<UserInfo>('/api/auth/user', { headers }).pipe(
       tap((userInfo) => {
         this.userInfo$.next(userInfo);
+        this.isAuthenticated$.next(true);
       })
     );
   }
