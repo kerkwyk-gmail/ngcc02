@@ -1,6 +1,10 @@
+using Api;
 using Microsoft.Identity.Web;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Persist application logs to the mounted volume alongside client-forwarded logs.
+builder.Logging.AddProvider(new FileLoggerProvider(Path.Combine("/mnt/data", "logs")));
 
 // Add Entra ID OIDC authentication
 builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
@@ -17,6 +21,20 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+var requestLogger = app.Logger;
+
+// Log every request/response so auth failures show up in the persisted log file.
+app.Use(async (context, next) =>
+{
+    await next();
+    requestLogger.LogInformation(
+        "{Method} {Path} -> {StatusCode} (authenticated: {IsAuthenticated})",
+        context.Request.Method,
+        context.Request.Path,
+        context.Response.StatusCode,
+        context.User.Identity?.IsAuthenticated ?? false);
+});
 
 // Use authentication middleware
 app.UseAuthentication();
