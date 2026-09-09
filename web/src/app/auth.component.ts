@@ -11,9 +11,16 @@ import { AuthService, UserInfo } from './auth.service';
     <div style="padding: 2rem; font-family: sans-serif;">
       <div *ngIf="!isAuthenticated">
         <h1>Authentication Required</h1>
-        <button (click)="login()" style="padding: 0.75rem 1.5rem; font-size: 1rem; cursor: pointer;">
+        <button 
+          #loginBtn
+          (click)="login()" 
+          onclick="console.log('NATIVE ONCLICK FIRED'); window.authComponentLogin();"
+          style="padding: 0.75rem 1.5rem; font-size: 1rem; cursor: pointer; background: #007bff; color: white; border: 2px solid blue;">
           Login with Entra ID
         </button>
+        <p style="margin-top: 1rem; font-size: 0.9rem; color: #666;">
+          If button doesn't work, try manually in console: window.authComponentLogin()
+        </p>
       </div>
 
       <div *ngIf="isAuthenticated && userInfo">
@@ -53,23 +60,33 @@ export class AuthComponent implements OnInit {
   isLoading = true;
   userInfo: UserInfo | null = null;
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(private authService: AuthService, private router: Router) {
+    console.log('🔧 AuthComponent constructor - exposing login to window');
+    (window as any).authComponentLogin = () => {
+      console.log('🌍 GLOBAL login called from window');
+      this.login();
+    };
+  }
 
   ngOnInit(): void {
+    console.log('🔧 AuthComponent ngOnInit called');
     this.authService.getIsAuthenticated().subscribe((isAuth) => {
+      console.log('👁️ Authenticated state changed to:', isAuth);
       this.isAuthenticated = isAuth;
       this.isLoading = false;
     });
 
     this.authService.getUserInfo().subscribe((info) => {
+      console.log('👤 User info changed:', info);
       this.userInfo = info;
     });
   }
 
   login(): void {
-    console.log('✓ COMPONENT login() method called!');
+    console.log('🔐 login() called - checking authService.login...');
+    console.log('Auth service exists?', !!this.authService);
     this.authService.login().catch((error) => {
-      console.error('Login error:', error);
+      console.error('❌ Login rejected with error:', error);
     });
   }
 

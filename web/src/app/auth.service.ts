@@ -19,27 +19,32 @@ export class AuthService {
   private userInfo$ = new BehaviorSubject<UserInfo | null>(null);
   private isAuthenticated$ = new BehaviorSubject<boolean>(false);
 
-  constructor(private oauthService: OAuthService, private http: HttpClient) {}
+  constructor(
+    private oauthService: OAuthService,
+    private http: HttpClient
+  ) {}
 
   async initAuth(): Promise<void> {
     try {
-      console.log('Initializing auth...');
+      console.log('🔐 AuthService.initAuth() called');
       this.oauthService.configure(authConfig);
-      console.log('Auth configured with issuer:', authConfig.issuer);
+      console.log('✓ Configured OAuthService with issuer:', authConfig.issuer);
       
       // Load discovery document immediately
       try {
-        console.log('Loading discovery document...');
+        console.log('📋 Loading discovery document...');
         await this.oauthService.loadDiscoveryDocument();
-        console.log('✓ Discovery document loaded');
+        console.log('✓ Discovery document loaded successfully');
+        console.log('  - Auth endpoint:', this.oauthService.authorizationEndpoint);
+        console.log('  - Token endpoint:', this.oauthService.tokenEndpoint);
       } catch (error) {
-        console.error('✗ Discovery document load failed:', error);
+        console.error('❌ Discovery document load failed:', error);
       }
 
       // Try to restore token from callback
       try {
         if (this.isCodeInUrl()) {
-          console.log('Code found in URL, attempting to complete login flow');
+          console.log('🔄 Code found in URL, attempting to complete login flow');
           await this.oauthService.tryLoginCodeFlow();
           this.isAuthenticated$.next(true);
           console.log('✓ Successfully logged in from callback');
@@ -69,26 +74,34 @@ export class AuthService {
 
   async login(): Promise<void> {
     try {
-      console.log('🔐 Login clicked');
+      console.log('🔐 AuthService.login() called');
+      console.log('✓ OAuthService exists?', !!this.oauthService);
       console.log('Discovery doc loaded?', this.oauthService.discoveryDocumentLoaded);
+      console.log('Authorization endpoint:', this.oauthService.authorizationEndpoint);
       
       // Ensure discovery document is loaded
       if (!this.oauthService.discoveryDocumentLoaded) {
-        console.log('Loading discovery document before login...');
+        console.log('⏳ Loading discovery document before login...');
         try {
           await this.oauthService.loadDiscoveryDocument();
           console.log('✓ Discovery document loaded');
         } catch (error) {
-          console.error('✗ Failed to load discovery document:', error);
+          console.error('❌ Failed to load discovery document:', error);
           return;
         }
       }
       
-      console.log('Initiating code flow...');
+      console.log('🚀 About to call initCodeFlow()...');
+      console.log('  - authorizationEndpoint:', this.oauthService.authorizationEndpoint);
+      console.log('  - clientId:', this.oauthService.clientId);
+      console.log('  - redirectUri:', this.oauthService.redirectUri);
+      
       this.oauthService.initCodeFlow();
-      console.log('✓ Code flow initiated (redirect should happen)');
+      
+      console.log('✓ initCodeFlow() called - redirect should happen now');
     } catch (error) {
-      console.error('❌ Login failed:', error);
+      console.error('❌ Login failed with exception:', error);
+      throw error;
     }
   }
 

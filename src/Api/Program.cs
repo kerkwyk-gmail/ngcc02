@@ -30,6 +30,34 @@ app.UseStaticFiles();
 // Health check
 app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
 
+// Client logging endpoint - accepts logs from Angular app and writes to persistent storage
+app.MapPost("/api/logs", async (HttpRequest request) =>
+{
+    try
+    {
+        // Ensure logs directory exists
+        var logsDir = Path.Combine("/mnt/data", "logs");
+        Directory.CreateDirectory(logsDir);
+        
+        // Read body
+        request.Body.Position = 0;
+        using var reader = new StreamReader(request.Body);
+        var content = await reader.ReadToEndAsync();
+        
+        // Append to log file with timestamp
+        var logFile = Path.Combine(logsDir, "app.log");
+        var timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff");
+        await System.IO.File.AppendAllTextAsync(logFile, $"[{timestamp}] {content}\n");
+        
+        return Results.Ok(new { status = "logged" });
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Error writing logs: {ex}");
+        return Results.StatusCode(500);
+    }
+});
+
 // User info endpoint - returns authenticated user's info and group memberships
 app.MapGet("/api/auth/user", (HttpContext context) =>
 {
