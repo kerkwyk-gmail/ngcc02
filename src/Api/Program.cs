@@ -17,6 +17,9 @@ builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
     ["AzureAd:ClientSecret"] = builder.Configuration["AZURE_AD_CLIENT_SECRET"],
 });
 
+// Add Entra ID OIDC authentication
+builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
+
 // Add CORS to allow Angular app to call the API
 builder.Services.AddCors(options =>
 {
