@@ -66,21 +66,77 @@ export class AuthService {
            window.location.hash.includes('code=');
   }
 
-  login(): void {
-    console.log('Login clicked');
-    console.log('Discovery doc loaded:', this.oauthService.discoveryDocumentLoaded);
-    
-    if (!this.oauthService.discoveryDocumentLoaded) {
-      console.warn('Discovery document not loaded, loading now...');
-      this.oauthService.loadDiscoveryDocument().then(() => {
-        console.log('Discovery document loaded, initiating code flow');
-        this.oauthService.initCodeFlow();
-      }).catch((error) => {
-        console.error('Failed to load discovery document:', error);
-      });
-    } else {
+  async initAuth(): Promise<void> {
+    try {
+      console.log('Initializing auth...');
+      this.oauthService.configure(authConfig);
+      console.log('Auth configured with issuer:', authConfig.issuer);
+      
+      // Load discovery document immediately
+      try {
+        console.log('Loading discovery document...');
+        await this.oauthService.loadDiscoveryDocument();
+        console.log('✓ Discovery document loaded');
+      } catch (error) {
+        console.error('✗ Discovery document load failed:', error);
+      }
+
+      // Try to restore token from callback
+      try {
+        if (this.isCodeInUrl()) {
+          console.log('Code found in URL, attempting to complete login flow');
+          await this.oauthService.tryLoginCodeFlow();
+          this.isAuthenticated$.next(true);
+          console.log('✓ Successfully logged in from callback');
+        }
+      } catch (error) {
+        console.warn('Code flow login failed:', error);
+      }
+
+      this.isAuthenticated$.next(this.oauthService.hasValidAccessToken());
+      
+      if (this.hasValidToken()) {
+        try {
+          await this.loadUserInfo().toPromise();
+        } catch (error) {
+          console.error('Failed to load user info:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Auth initialization failed:', error);
+    }
+  }
+
+  private isCodeInUrl(): boolean {
+    return window.location.search.includes('code=') || 
+           window.location.hash.includes('code=');
+  }
+
+  async login(): Promise<void> {
+    try {
+      console.log('🔐 Login clicked');
+      console.log('Discovery doc loaded?', this.oauthService.discoveryDocumentLoaded);
+      
+      // Ensure discovery document is loaded
+      if (!this.oauthService.discoveryDocumentLoaded) {
+        console.log('Loading discovery document before login...');
+        try {
+          await this.oauthService.loadDiscoveryDocument();
+          console.log('✓ Discovery document loaded');
+        } catch (error) {
+          console.error('✗ Failed to load discovery document:', error);
+          return;
+        }
+      }
+      
+      console.log('Authorization endpoint:', this.oauthService.discoveredAuthServerMetadata?.authorization_endpoint);
+      console.log('Token endpoint:', this.oauthService.discoveredAuthServerMetadata?.token_endpoint);
+      
       console.log('Initiating code flow...');
       this.oauthService.initCodeFlow();
+      console.log('✓ Code flow initiated (redirect should happen)');
+    } catch (error) {
+      console.error('❌ Login failed:', error);
     }
   }
 
