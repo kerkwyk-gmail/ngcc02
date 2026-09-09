@@ -23,18 +23,29 @@ export class AuthService {
 
   async initAuth(): Promise<void> {
     try {
+      console.log('Initializing auth...');
       this.oauthService.configure(authConfig);
+      console.log('Auth configured');
       
-      // Try to load discovery document, but don't fail if it doesn't work
+      // Try to load discovery document, essential for code flow
       try {
+        console.log('Loading discovery document from:', authConfig.discoveryDocumentUrl);
         await this.oauthService.loadDiscoveryDocument();
+        console.log('Discovery document loaded successfully');
       } catch (error) {
-        console.warn('Discovery document failed, continuing without it:', error);
+        console.error('Discovery document load failed:', error);
+        // Try again with manual endpoints configuration
+        try {
+          await this.oauthService.loadDiscoveryDocumentAndTryLogin();
+        } catch (err) {
+          console.warn('Fallback login also failed:', err);
+        }
       }
 
       // Try to restore token from callback
       try {
         if (this.isCodeInUrl()) {
+          console.log('Code found in URL, attempting to complete login flow');
           await this.oauthService.tryLoginCodeFlow();
         }
       } catch (error) {
@@ -42,6 +53,7 @@ export class AuthService {
       }
 
       this.isAuthenticated$.next(this.oauthService.hasValidAccessToken());
+      console.log('Authenticated:', this.oauthService.hasValidAccessToken());
       
       if (this.hasValidToken()) {
         try {
@@ -52,7 +64,6 @@ export class AuthService {
       }
     } catch (error) {
       console.error('Auth initialization failed:', error);
-      // Don't throw - app should still work without auth
     }
   }
 
@@ -62,7 +73,23 @@ export class AuthService {
   }
 
   login(): void {
-    this.oauthService.initCodeFlow();
+    console.log('Login clicked');
+    console.log('Discovery doc loaded:', this.oauthService.discoveryDocumentLoaded);
+    console.log('Auth well known:', this.oauthService.authorizationEndpoint);
+    
+    if (!this.oauthService.authorizationEndpoint) {
+      console.error('Authorization endpoint not available - discovery document may not have loaded');
+      // Try to load it first
+      this.oauthService.loadDiscoveryDocument().then(() => {
+        console.log('Discovery document loaded, now initiating code flow');
+        this.oauthService.initCodeFlow();
+      }).catch((error) => {
+        console.error('Failed to load discovery document for login:', error);
+      });
+    } else {
+      console.log('Initiating code flow...');
+      this.oauthService.initCodeFlow();
+    }
   }
 
   logout(): void {
