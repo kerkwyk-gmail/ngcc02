@@ -22,22 +22,43 @@ export class AuthService {
   constructor(private oauthService: OAuthService, private http: HttpClient) {}
 
   async initAuth(): Promise<void> {
-    this.oauthService.configure(authConfig);
-    await this.oauthService.loadDiscoveryDocument().catch(() => {
-      // Fallback for Azure AD
-      console.log('Discovery document failed, using static config');
-    });
+    try {
+      this.oauthService.configure(authConfig);
+      
+      // Try to load discovery document, but don't fail if it doesn't work
+      try {
+        await this.oauthService.loadDiscoveryDocument();
+      } catch (error) {
+        console.warn('Discovery document failed, continuing without it:', error);
+      }
 
-    // Try to restore the token if the user is already logged in
-    await this.oauthService.tryLoginCodeFlow().catch(() => {
-      console.log('No valid session found');
-    });
+      // Try to restore token from callback
+      try {
+        if (this.isCodeInUrl()) {
+          await this.oauthService.tryLoginCodeFlow();
+        }
+      } catch (error) {
+        console.warn('Code flow login failed:', error);
+      }
 
-    this.isAuthenticated$.next(this.oauthService.hasValidAccessToken());
-    
-    if (this.hasValidToken()) {
-      await this.loadUserInfo().toPromise();
+      this.isAuthenticated$.next(this.oauthService.hasValidAccessToken());
+      
+      if (this.hasValidToken()) {
+        try {
+          await this.loadUserInfo().toPromise();
+        } catch (error) {
+          console.error('Failed to load user info:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Auth initialization failed:', error);
+      // Don't throw - app should still work without auth
     }
+  }
+
+  private isCodeInUrl(): boolean {
+    return window.location.search.includes('code=') || 
+           window.location.hash.includes('code=');
   }
 
   login(): void {
