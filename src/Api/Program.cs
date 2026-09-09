@@ -1,14 +1,7 @@
 using Api;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Identity.Web;
-using Microsoft.IdentityModel.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// TEMPORARY: surface the real reason behind JWT validation failures while
-// debugging the /api/users 401s. Remove once resolved - this can log token
-// contents.
-IdentityModelEventSource.ShowPII = true;
 
 // Persist application logs to the mounted volume alongside client-forwarded logs.
 builder.Logging.AddProvider(new FileLoggerProvider(Path.Combine("/mnt/data", "logs")));
@@ -22,26 +15,6 @@ builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
     ["AzureAd:TenantId"] = builder.Configuration["AZURE_AD_TENANT_ID"],
     ["AzureAd:ClientId"] = builder.Configuration["AZURE_AD_CLIENT_ID"],
     ["AzureAd:ClientSecret"] = builder.Configuration["AZURE_AD_CLIENT_SECRET"],
-});
-
-// Add Entra ID OIDC authentication
-builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
-
-// TEMPORARY: log the real exception behind JWT validation failures directly,
-// bypassing IdentityModel's PII redaction. Remove once the /api/users 401s
-// are diagnosed - this can log token contents.
-builder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
-{
-    var previous = options.Events?.OnAuthenticationFailed;
-    options.Events ??= new JwtBearerEvents();
-    options.Events.OnAuthenticationFailed = async context =>
-    {
-        Console.Error.WriteLine($"JWT auth failed: {context.Exception}");
-        if (previous is not null)
-        {
-            await previous(context);
-        }
-    };
 });
 
 // Add CORS to allow Angular app to call the API
@@ -63,11 +36,10 @@ string? pgConnectionString = null;
 try
 {
     pgConnectionString = Database.BuildConnectionString(app.Configuration);
-    await Database.EnsureUsersTableAsync(pgConnectionString, requestLogger);
 }
 catch (Exception ex)
 {
-    requestLogger.LogError(ex, "Failed to initialize Postgres connection / users table");
+    requestLogger.LogError(ex, "Failed to build Postgres connection string");
 }
 
 // Log every request/response so auth failures show up in the persisted log file.

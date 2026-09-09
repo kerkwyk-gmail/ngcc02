@@ -29,46 +29,10 @@ public static class Database
         }.ConnectionString;
     }
 
-    public static async Task EnsureUsersTableAsync(string connectionString, ILogger logger)
+    // The "users" table already exists with a single "users" text column.
+    public static async Task<List<string>> GetUsersAsync(string connectionString, ILogger logger)
     {
-        await using var conn = new NpgsqlConnection(connectionString);
-        await conn.OpenAsync();
-
-        await using (var createCmd = conn.CreateCommand())
-        {
-            createCmd.CommandText = """
-                CREATE TABLE IF NOT EXISTS users (
-                    id SERIAL PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    email TEXT NOT NULL,
-                    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-                );
-                """;
-            await createCmd.ExecuteNonQueryAsync();
-        }
-
-        await using (var countCmd = conn.CreateCommand())
-        {
-            countCmd.CommandText = "SELECT COUNT(*) FROM users";
-            var count = (long)(await countCmd.ExecuteScalarAsync() ?? 0L);
-            if (count == 0)
-            {
-                logger.LogInformation("users table is empty, seeding sample rows");
-                await using var seedCmd = conn.CreateCommand();
-                seedCmd.CommandText = """
-                    INSERT INTO users (name, email) VALUES
-                        ('Alice Example', 'alice@example.com'),
-                        ('Bob Example', 'bob@example.com'),
-                        ('Carol Example', 'carol@example.com');
-                    """;
-                await seedCmd.ExecuteNonQueryAsync();
-            }
-        }
-    }
-
-    public static async Task<List<UserRow>> GetUsersAsync(string connectionString, ILogger logger)
-    {
-        const string sql = "SELECT id, name, email, created_at FROM users ORDER BY id";
+        const string sql = "SELECT users FROM users";
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
         try
@@ -79,15 +43,11 @@ public static class Database
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = sql;
 
-            var results = new List<UserRow>();
+            var results = new List<string>();
             await using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                results.Add(new UserRow(
-                    reader.GetInt32(0),
-                    reader.GetString(1),
-                    reader.GetString(2),
-                    reader.GetFieldValue<DateTimeOffset>(3)));
+                results.Add(reader.GetString(0));
             }
 
             logger.LogInformation(
@@ -102,5 +62,3 @@ public static class Database
         }
     }
 }
-
-public record UserRow(int Id, string Name, string Email, DateTimeOffset CreatedAt);
