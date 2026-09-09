@@ -1,0 +1,73 @@
+<div class="page">
+  <div class="card">
+    @if (authService.isInitializing()) {
+      <div class="state state--centered">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>Checking authentication&hellip;</p>
+      </div>
+    } @else if (!authService.isAuthenticated()) {
+      <div class="state state--centered">
+        <h1>Authentication Required</h1>
+        <p class="muted">Sign in with your Entra ID account to continue.</p>
+        <button class="btn btn--primary" (click)="login()">Login with Entra ID</button>
+      </div>
+    } @else if (authService.userInfo(); as userInfo) {
+      <header class="header">
+        <h1>Welcome, {{ userInfo.name }}</h1>
+        <button class="btn btn--ghost" (click)="logout()">Logout</button>
+      </header>
+
+      <section class="panel">
+        <dl class="detail-list">
+          <dt>Email</dt>
+          <dd>{{ userInfo.email }}</dd>
+          <dt>User ID</dt>
+          <dd class="mono">{{ userInfo.id }}</dd>
+        </dl>
+      </section>
+
+      <section class="panel">
+        <h2>Group Memberships</h2>
+        @if (userInfo.groups && userInfo.groups.length > 0) {
+          <ul class="chip-list">
+            @for (group of userInfo.groups; track group) {
+              <li class="chip">{{ group }}</li>
+            }
+          </ul>
+        } @else {
+          <p class="muted">No groups assigned</p>
+        }
+      </section>
+
+      <section class="panel">
+        <h2>Users (from database)</h2>
+        @if (authService.dbUsersError(); as error) {
+          <p class="error">{{ error }}</p>
+        } @else if (authService.dbUsers(); as dbUsers) {
+          @if (dbUsers.length > 0) {
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (dbUser of dbUsers; track dbUser.id) {
+                  <tr>
+                    <td class="mono">{{ dbUser.id }}</td>
+                    <td>{{ dbUser.email }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          } @else {
+            <p class="muted">No users in the database</p>
+          }
+        } @else {
+          <p class="muted">Loading&hellip;</p>
+        }
+      </section>
+    }
+  </div>
+</div>

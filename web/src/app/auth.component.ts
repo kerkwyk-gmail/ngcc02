@@ -1,74 +1,13 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from './auth.service';
 
 @Component({
   selector: 'app-auth',
   standalone: true,
-  imports: [CommonModule],
-  template: `
-    <div style="padding: 2rem; font-family: sans-serif;">
-      <div *ngIf="authService.isInitializing()" style="text-align: center;">
-        <p>Checking authentication...</p>
-      </div>
-
-      <div *ngIf="!authService.isInitializing() && !authService.isAuthenticated()">
-        <h1>Authentication Required</h1>
-        <button
-          (click)="login()"
-          style="padding: 0.75rem 1.5rem; font-size: 1rem; cursor: pointer; background: #007bff; color: white; border: 2px solid blue;">
-          Login with Entra ID
-        </button>
-      </div>
-
-      <div *ngIf="!authService.isInitializing() && authService.isAuthenticated()">
-        <ng-container *ngIf="authService.userInfo() as userInfo">
-          <h1>Welcome, {{ userInfo.name }}!</h1>
-          <div style="margin: 2rem 0; padding: 1rem; background: #f0f0f0; border-radius: 0.5rem;">
-            <p><strong>Email:</strong> {{ userInfo.email }}</p>
-            <p><strong>User ID:</strong> {{ userInfo.id }}</p>
-          </div>
-
-          <div style="margin: 2rem 0;">
-            <h2>Group Memberships</h2>
-            <div *ngIf="userInfo.groups && userInfo.groups.length > 0">
-              <ul style="list-style-position: inside;">
-                <li *ngFor="let group of userInfo.groups" style="padding: 0.5rem 0;">
-                  {{ group }}
-                </li>
-              </ul>
-            </div>
-            <p *ngIf="!userInfo.groups || userInfo.groups.length === 0" style="color: #666;">
-              No groups assigned
-            </p>
-          </div>
-
-          <div style="margin: 2rem 0;">
-            <h2>Users (from database)</h2>
-            <p *ngIf="authService.dbUsersError() as error" style="color: #dc3545;">{{ error }}</p>
-            <p *ngIf="!authService.dbUsersError() && authService.dbUsers() === null" style="color: #666;">
-              Loading...
-            </p>
-            <div *ngIf="authService.dbUsers() as dbUsers">
-              <ul *ngIf="dbUsers.length > 0" style="list-style-position: inside;">
-                <li *ngFor="let dbUser of dbUsers" style="padding: 0.5rem 0;">
-                  #{{ dbUser.id }} - {{ dbUser.email }}
-                </li>
-              </ul>
-              <p *ngIf="dbUsers.length === 0" style="color: #666;">
-                No users in the database
-              </p>
-            </div>
-          </div>
-
-          <button (click)="logout()" style="padding: 0.75rem 1.5rem; font-size: 1rem; cursor: pointer; background: #dc3545; color: white; border: none; border-radius: 0.25rem;">
-            Logout
-          </button>
-        </ng-container>
-      </div>
-    </div>
-  `,
+  imports: [],
+  templateUrl: './auth.component.html',
+  styleUrl: './auth.component.scss',
 })
 export class AuthComponent {
   constructor(protected authService: AuthService, private router: Router) {}
