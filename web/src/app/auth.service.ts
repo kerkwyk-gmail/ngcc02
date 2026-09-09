@@ -25,51 +25,6 @@ export class AuthService {
     try {
       console.log('Initializing auth...');
       this.oauthService.configure(authConfig);
-      console.log('Auth configured');
-      
-      // Try to load discovery document
-      try {
-        console.log('Loading discovery document...');
-        await this.oauthService.loadDiscoveryDocument();
-        console.log('Discovery document loaded successfully');
-      } catch (error) {
-        console.error('Discovery document load failed:', error);
-      }
-
-      // Try to restore token from callback
-      try {
-        if (this.isCodeInUrl()) {
-          console.log('Code found in URL, attempting to complete login flow');
-          await this.oauthService.tryLoginCodeFlow();
-        }
-      } catch (error) {
-        console.warn('Code flow login failed:', error);
-      }
-
-      this.isAuthenticated$.next(this.oauthService.hasValidAccessToken());
-      console.log('Authenticated:', this.oauthService.hasValidAccessToken());
-      
-      if (this.hasValidToken()) {
-        try {
-          await this.loadUserInfo().toPromise();
-        } catch (error) {
-          console.error('Failed to load user info:', error);
-        }
-      }
-    } catch (error) {
-      console.error('Auth initialization failed:', error);
-    }
-  }
-
-  private isCodeInUrl(): boolean {
-    return window.location.search.includes('code=') || 
-           window.location.hash.includes('code=');
-  }
-
-  async initAuth(): Promise<void> {
-    try {
-      console.log('Initializing auth...');
-      this.oauthService.configure(authConfig);
       console.log('Auth configured with issuer:', authConfig.issuer);
       
       // Load discovery document immediately
@@ -128,9 +83,6 @@ export class AuthService {
           return;
         }
       }
-      
-      console.log('Authorization endpoint:', this.oauthService.discoveredAuthServerMetadata?.authorization_endpoint);
-      console.log('Token endpoint:', this.oauthService.discoveredAuthServerMetadata?.token_endpoint);
       
       console.log('Initiating code flow...');
       this.oauthService.initCodeFlow();
