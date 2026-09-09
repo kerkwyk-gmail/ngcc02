@@ -9,6 +9,11 @@ export interface UserInfo {
   groups: string[];
 }
 
+export interface DbUser {
+  id: number;
+  email: string;
+}
+
 
 @Injectable({
   providedIn: 'root',
@@ -17,7 +22,7 @@ export class AuthService {
   private readonly userInfoSignal = signal<UserInfo | null>(null);
   private readonly isAuthenticatedSignal = signal<boolean>(false);
   private readonly isInitializingSignal = signal<boolean>(true);
-  private readonly dbUsersSignal = signal<string[] | null>(null);
+  private readonly dbUsersSignal = signal<DbUser[] | null>(null);
   private readonly dbUsersErrorSignal = signal<string | null>(null);
 
   readonly isAuthenticated = this.isAuthenticatedSignal.asReadonly();

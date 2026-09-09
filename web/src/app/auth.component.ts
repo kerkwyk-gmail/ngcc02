@@ -53,7 +53,7 @@ import { AuthService } from './auth.service';
             <div *ngIf="authService.dbUsers() as dbUsers">
               <ul *ngIf="dbUsers.length > 0" style="list-style-position: inside;">
                 <li *ngFor="let dbUser of dbUsers" style="padding: 0.5rem 0;">
-                  {{ dbUser }}
+                  #{{ dbUser.id }} - {{ dbUser.email }}
                 </li>
               </ul>
               <p *ngIf="dbUsers.length === 0" style="color: #666;">

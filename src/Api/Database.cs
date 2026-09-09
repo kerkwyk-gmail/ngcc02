@@ -29,10 +29,9 @@ public static class Database
         }.ConnectionString;
     }
 
-    // The "users" table already exists with a single "users" text column.
-    public static async Task<List<string>> GetUsersAsync(string connectionString, ILogger logger)
+    public static async Task<List<DbUserRow>> GetUsersAsync(string connectionString, ILogger logger)
     {
-        const string sql = "SELECT users FROM users";
+        const string sql = "SELECT id, email FROM users ORDER BY id";
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
         try
@@ -43,11 +42,11 @@ public static class Database
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = sql;
 
-            var results = new List<string>();
+            var results = new List<DbUserRow>();
             await using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                results.Add(reader.GetString(0));
+                results.Add(new DbUserRow(reader.GetInt32(0), reader.GetString(1)));
             }
 
             logger.LogInformation(
@@ -62,3 +61,5 @@ public static class Database
         }
     }
 }
+
+public record DbUserRow(int Id, string Email);
