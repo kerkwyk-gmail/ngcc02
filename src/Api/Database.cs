@@ -10,7 +10,10 @@ public static class Database
             ?? throw new InvalidOperationException("POSTGRES_CONNECTION_NAME is not set");
         var database = config["POSTGRES_DB"] ?? "postgres";
         var user = config["POSTGRES_USER"] ?? "postgres";
-        var password = config["POSTGRES_PASSWORD"]
+        // Secret Manager values (and how Cloud Run mounts them as env vars) can carry
+        // a trailing newline depending on how the secret was created - trim it so it
+        // doesn't silently break password auth.
+        var password = config["POSTGRES_PASSWORD"]?.Trim()
             ?? throw new InvalidOperationException("POSTGRES_PASSWORD is not set");
 
         // Cloud Run mounts the Cloud SQL Auth Proxy as a unix socket under /cloudsql
