@@ -1,0 +1,20 @@
+# Development settings with secrets
+**/appsettings.Development.json
+
+# Build outputs
+**/bin/
+**/obj/
+
+# Node modules
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
