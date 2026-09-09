@@ -1,11 +1,9 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { RouterOutlet, RouterLink } from '@angular/router';
-import { HttpClientModule } from '@angular/common/http';
-import { OAuthModule } from 'angular-oauth2-oidc';
 import { AuthService } from './auth.service';
 
 @Component({
-  imports: [RouterOutlet, RouterLink, HttpClientModule, OAuthModule],
+  imports: [RouterOutlet, RouterLink],
   selector: 'app-root',
   styleUrl: './app.scss',
   templateUrl: './app.html',
@@ -16,6 +14,10 @@ export class App implements OnInit {
   constructor(private authService: AuthService) {}
 
   async ngOnInit(): Promise<void> {
-    await this.authService.initAuth();
+    try {
+      await this.authService.initAuth();
+    } catch (error) {
+      console.error('Auth initialization failed:', error);
+    }
   }
 }
