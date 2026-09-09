@@ -1,4 +1,5 @@
 using Api;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Identity.Web;
 using Microsoft.IdentityModel.Logging;
 
@@ -25,6 +26,23 @@ builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
 
 // Add Entra ID OIDC authentication
 builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
+
+// TEMPORARY: log the real exception behind JWT validation failures directly,
+// bypassing IdentityModel's PII redaction. Remove once the /api/users 401s
+// are diagnosed - this can log token contents.
+builder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
+{
+    var previous = options.Events?.OnAuthenticationFailed;
+    options.Events ??= new JwtBearerEvents();
+    options.Events.OnAuthenticationFailed = async context =>
+    {
+        Console.Error.WriteLine($"JWT auth failed: {context.Exception}");
+        if (previous is not null)
+        {
+            await previous(context);
+        }
+    };
+});
 
 // Add CORS to allow Angular app to call the API
 builder.Services.AddCors(options =>
