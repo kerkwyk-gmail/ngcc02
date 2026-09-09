@@ -44,6 +44,35 @@ import { AuthService } from './auth.service';
             </p>
           </div>
 
+          <div style="margin: 2rem 0;">
+            <h2>Users (from database)</h2>
+            <p *ngIf="authService.dbUsersError() as error" style="color: #dc3545;">{{ error }}</p>
+            <p *ngIf="!authService.dbUsersError() && authService.dbUsers() === null" style="color: #666;">
+              Loading...
+            </p>
+            <table *ngIf="authService.dbUsers() as dbUsers" style="border-collapse: collapse; width: 100%;">
+              <thead>
+                <tr>
+                  <th style="text-align: left; border-bottom: 1px solid #ccc; padding: 0.5rem;">ID</th>
+                  <th style="text-align: left; border-bottom: 1px solid #ccc; padding: 0.5rem;">Name</th>
+                  <th style="text-align: left; border-bottom: 1px solid #ccc; padding: 0.5rem;">Email</th>
+                  <th style="text-align: left; border-bottom: 1px solid #ccc; padding: 0.5rem;">Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let dbUser of dbUsers">
+                  <td style="padding: 0.5rem; border-bottom: 1px solid #eee;">{{ dbUser.id }}</td>
+                  <td style="padding: 0.5rem; border-bottom: 1px solid #eee;">{{ dbUser.name }}</td>
+                  <td style="padding: 0.5rem; border-bottom: 1px solid #eee;">{{ dbUser.email }}</td>
+                  <td style="padding: 0.5rem; border-bottom: 1px solid #eee;">{{ dbUser.createdAt | date: 'medium' }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <p *ngIf="authService.dbUsers() as dbUsers" [hidden]="dbUsers.length > 0" style="color: #666;">
+              No users in the database
+            </p>
+          </div>
+
           <button (click)="logout()" style="padding: 0.75rem 1.5rem; font-size: 1rem; cursor: pointer; background: #dc3545; color: white; border: none; border-radius: 0.25rem;">
             Logout
           </button>

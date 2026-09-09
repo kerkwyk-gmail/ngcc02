@@ -6,7 +6,7 @@ export const authConfig: AuthConfig = {
   redirectUri: window.location.origin + '/callback',
   postLogoutRedirectUri: window.location.origin,
   responseType: 'code',
-  scope: 'openid profile email',
+  scope: 'openid profile email api://83e6cc0c-00d8-4255-b61c-ff4bad49a6ac/access_as_user',
   strictDiscoveryDocumentValidation: false,
   oidc: true,
   requestAccessToken: true,

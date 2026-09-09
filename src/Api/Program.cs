@@ -6,6 +6,17 @@ var builder = WebApplication.CreateBuilder(args);
 // Persist application logs to the mounted volume alongside client-forwarded logs.
 builder.Logging.AddProvider(new FileLoggerProvider(Path.Combine("/mnt/data", "logs")));
 
+// appsettings.json's AzureAd:* values are unresolved ${VAR} placeholders - .NET
+// configuration doesn't interpolate those. Map the real Cloud Run env vars onto
+// the AzureAd: section Microsoft.Identity.Web expects instead.
+builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+{
+    ["AzureAd:Instance"] = "https://login.microsoftonline.com/",
+    ["AzureAd:TenantId"] = builder.Configuration["AZURE_AD_TENANT_ID"],
+    ["AzureAd:ClientId"] = builder.Configuration["AZURE_AD_CLIENT_ID"],
+    ["AzureAd:ClientSecret"] = builder.Configuration["AZURE_AD_CLIENT_SECRET"],
+});
+
 // Add Entra ID OIDC authentication
 builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
 
@@ -23,6 +34,17 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 var requestLogger = app.Logger;
+
+string? pgConnectionString = null;
+try
+{
+    pgConnectionString = Database.BuildConnectionString(app.Configuration);
+    await Database.EnsureUsersTableAsync(pgConnectionString, requestLogger);
+}
+catch (Exception ex)
+{
+    requestLogger.LogError(ex, "Failed to initialize Postgres connection / users table");
+}
 
 // Log every request/response so auth failures show up in the persisted log file.
 app.Use(async (context, next) =>
@@ -93,6 +115,18 @@ app.MapGet("/api/auth/user", (HttpContext context) =>
     };
 
     return Results.Ok(userInfo);
+}).RequireAuthorization();
+
+// Returns every row in the "users" table - requires the same Entra ID login as the rest of the app.
+app.MapGet("/api/users", async () =>
+{
+    if (pgConnectionString is null)
+    {
+        return Results.StatusCode(503);
+    }
+
+    var users = await Database.GetUsersAsync(pgConnectionString);
+    return Results.Ok(users);
 }).RequireAuthorization();
 
 // Angular client-side routing: any request that isn't a real static file

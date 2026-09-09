@@ -9,6 +9,13 @@ export interface UserInfo {
   groups: string[];
 }
 
+export interface DbUser {
+  id: number;
+  name: string;
+  email: string;
+  createdAt: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -16,10 +23,14 @@ export class AuthService {
   private readonly userInfoSignal = signal<UserInfo | null>(null);
   private readonly isAuthenticatedSignal = signal<boolean>(false);
   private readonly isInitializingSignal = signal<boolean>(true);
+  private readonly dbUsersSignal = signal<DbUser[] | null>(null);
+  private readonly dbUsersErrorSignal = signal<string | null>(null);
 
   readonly isAuthenticated = this.isAuthenticatedSignal.asReadonly();
   readonly userInfo = this.userInfoSignal.asReadonly();
   readonly isInitializing = this.isInitializingSignal.asReadonly();
+  readonly dbUsers = this.dbUsersSignal.asReadonly();
+  readonly dbUsersError = this.dbUsersErrorSignal.asReadonly();
 
   constructor(private oauthService: OAuthService) {}
 
@@ -53,11 +64,28 @@ export class AuthService {
 
       if (this.hasValidToken()) {
         this.userInfoSignal.set(this.extractUserInfo());
+        await this.loadDbUsers();
       }
     } catch (error) {
       console.error('Auth initialization failed:', error);
     } finally {
       this.isInitializingSignal.set(false);
+    }
+  }
+
+  private async loadDbUsers(): Promise<void> {
+    try {
+      const response = await fetch('/api/users', {
+        headers: { Authorization: `Bearer ${this.oauthService.getAccessToken()}` },
+      });
+      if (!response.ok) {
+        throw new Error(`/api/users returned ${response.status}`);
+      }
+      this.dbUsersSignal.set(await response.json());
+      this.dbUsersErrorSignal.set(null);
+    } catch (error) {
+      console.error('Failed to load users from database:', error);
+      this.dbUsersErrorSignal.set('Could not load users from the database.');
     }
   }
 
@@ -95,6 +123,8 @@ export class AuthService {
     this.oauthService.logOut();
     this.userInfoSignal.set(null);
     this.isAuthenticatedSignal.set(false);
+    this.dbUsersSignal.set(null);
+    this.dbUsersErrorSignal.set(null);
   }
 
   hasValidToken(): boolean {
