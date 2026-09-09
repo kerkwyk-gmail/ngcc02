@@ -27,19 +27,13 @@ export class AuthService {
       this.oauthService.configure(authConfig);
       console.log('Auth configured');
       
-      // Try to load discovery document, essential for code flow
+      // Try to load discovery document
       try {
-        console.log('Loading discovery document from:', authConfig.discoveryDocumentUrl);
+        console.log('Loading discovery document...');
         await this.oauthService.loadDiscoveryDocument();
         console.log('Discovery document loaded successfully');
       } catch (error) {
         console.error('Discovery document load failed:', error);
-        // Try again with manual endpoints configuration
-        try {
-          await this.oauthService.loadDiscoveryDocumentAndTryLogin();
-        } catch (err) {
-          console.warn('Fallback login also failed:', err);
-        }
       }
 
       // Try to restore token from callback
@@ -75,16 +69,14 @@ export class AuthService {
   login(): void {
     console.log('Login clicked');
     console.log('Discovery doc loaded:', this.oauthService.discoveryDocumentLoaded);
-    console.log('Auth well known:', this.oauthService.authorizationEndpoint);
     
-    if (!this.oauthService.authorizationEndpoint) {
-      console.error('Authorization endpoint not available - discovery document may not have loaded');
-      // Try to load it first
+    if (!this.oauthService.discoveryDocumentLoaded) {
+      console.warn('Discovery document not loaded, loading now...');
       this.oauthService.loadDiscoveryDocument().then(() => {
-        console.log('Discovery document loaded, now initiating code flow');
+        console.log('Discovery document loaded, initiating code flow');
         this.oauthService.initCodeFlow();
       }).catch((error) => {
-        console.error('Failed to load discovery document for login:', error);
+        console.error('Failed to load discovery document:', error);
       });
     } else {
       console.log('Initiating code flow...');
