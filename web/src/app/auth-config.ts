@@ -10,5 +10,4 @@ export const authConfig: AuthConfig = {
   strictDiscoveryDocumentValidation: false,
   oidc: true,
   requestAccessToken: true,
-  revokeAccessTokenOnSignout: true,
 };
