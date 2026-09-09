@@ -35,8 +35,6 @@ export class AuthService {
         console.log('📋 Loading discovery document...');
         await this.oauthService.loadDiscoveryDocument();
         console.log('✓ Discovery document loaded successfully');
-        console.log('  - Auth endpoint:', this.oauthService.authorizationEndpoint);
-        console.log('  - Token endpoint:', this.oauthService.tokenEndpoint);
       } catch (error) {
         console.error('❌ Discovery document load failed:', error);
       }
@@ -77,7 +75,6 @@ export class AuthService {
       console.log('🔐 AuthService.login() called');
       console.log('✓ OAuthService exists?', !!this.oauthService);
       console.log('Discovery doc loaded?', this.oauthService.discoveryDocumentLoaded);
-      console.log('Authorization endpoint:', this.oauthService.authorizationEndpoint);
       
       // Ensure discovery document is loaded
       if (!this.oauthService.discoveryDocumentLoaded) {
@@ -92,7 +89,6 @@ export class AuthService {
       }
       
       console.log('🚀 About to call initCodeFlow()...');
-      console.log('  - authorizationEndpoint:', this.oauthService.authorizationEndpoint);
       console.log('  - clientId:', this.oauthService.clientId);
       console.log('  - redirectUri:', this.oauthService.redirectUri);
       
