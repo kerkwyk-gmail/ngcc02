@@ -66,26 +66,40 @@ public static class Database
         }
     }
 
-    public static async Task<List<UserRow>> GetUsersAsync(string connectionString)
+    public static async Task<List<UserRow>> GetUsersAsync(string connectionString, ILogger logger)
     {
-        await using var conn = new NpgsqlConnection(connectionString);
-        await conn.OpenAsync();
+        const string sql = "SELECT id, name, email, created_at FROM users ORDER BY id";
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT id, name, email, created_at FROM users ORDER BY id";
-
-        var results = new List<UserRow>();
-        await using var reader = await cmd.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
+        try
         {
-            results.Add(new UserRow(
-                reader.GetInt32(0),
-                reader.GetString(1),
-                reader.GetString(2),
-                reader.GetFieldValue<DateTimeOffset>(3)));
-        }
+            await using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync();
 
-        return results;
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+
+            var results = new List<UserRow>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                results.Add(new UserRow(
+                    reader.GetInt32(0),
+                    reader.GetString(1),
+                    reader.GetString(2),
+                    reader.GetFieldValue<DateTimeOffset>(3)));
+            }
+
+            logger.LogInformation(
+                "Query {Sql} returned {RowCount} rows in {ElapsedMs}ms",
+                sql, results.Count, stopwatch.ElapsedMilliseconds);
+            return results;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Query {Sql} failed after {ElapsedMs}ms", sql, stopwatch.ElapsedMilliseconds);
+            throw;
+        }
     }
 }
 

@@ -1,7 +1,13 @@
 using Api;
 using Microsoft.Identity.Web;
+using Microsoft.IdentityModel.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// TEMPORARY: surface the real reason behind JWT validation failures while
+// debugging the /api/users 401s. Remove once resolved - this can log token
+// contents.
+IdentityModelEventSource.ShowPII = true;
 
 // Persist application logs to the mounted volume alongside client-forwarded logs.
 builder.Logging.AddProvider(new FileLoggerProvider(Path.Combine("/mnt/data", "logs")));
@@ -125,8 +131,16 @@ app.MapGet("/api/users", async () =>
         return Results.StatusCode(503);
     }
 
-    var users = await Database.GetUsersAsync(pgConnectionString);
-    return Results.Ok(users);
+    try
+    {
+        var users = await Database.GetUsersAsync(pgConnectionString, requestLogger);
+        return Results.Ok(users);
+    }
+    catch (Exception ex)
+    {
+        requestLogger.LogError(ex, "GET /api/users failed");
+        return Results.StatusCode(500);
+    }
 }).RequireAuthorization();
 
 // Angular client-side routing: any request that isn't a real static file
