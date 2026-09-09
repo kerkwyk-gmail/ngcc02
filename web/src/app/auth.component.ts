@@ -67,6 +67,7 @@ export class AuthComponent implements OnInit {
   }
 
   login(): void {
+    console.log('✓ COMPONENT login() method called!');
     this.authService.login().catch((error) => {
       console.error('Login error:', error);
     });
