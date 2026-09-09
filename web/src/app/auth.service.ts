@@ -1,9 +1,6 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Injectable, signal } from '@angular/core';
 import { OAuthService } from 'angular-oauth2-oidc';
 import { authConfig } from './auth-config';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
 
 export interface UserInfo {
   name: string;
@@ -16,20 +13,22 @@ export interface UserInfo {
   providedIn: 'root',
 })
 export class AuthService {
-  private userInfo$ = new BehaviorSubject<UserInfo | null>(null);
-  private isAuthenticated$ = new BehaviorSubject<boolean>(false);
+  private readonly userInfoSignal = signal<UserInfo | null>(null);
+  private readonly isAuthenticatedSignal = signal<boolean>(false);
+  private readonly isInitializingSignal = signal<boolean>(true);
 
-  constructor(
-    private oauthService: OAuthService,
-    private http: HttpClient
-  ) {}
+  readonly isAuthenticated = this.isAuthenticatedSignal.asReadonly();
+  readonly userInfo = this.userInfoSignal.asReadonly();
+  readonly isInitializing = this.isInitializingSignal.asReadonly();
+
+  constructor(private oauthService: OAuthService) {}
 
   async initAuth(): Promise<void> {
     try {
       console.log('🔐 AuthService.initAuth() called');
       this.oauthService.configure(authConfig);
       console.log('✓ Configured OAuthService with issuer:', authConfig.issuer);
-      
+
       // Load discovery document immediately
       try {
         console.log('📋 Loading discovery document...');
@@ -44,38 +43,33 @@ export class AuthService {
         if (this.isCodeInUrl()) {
           console.log('🔄 Code found in URL, attempting to complete login flow');
           await this.oauthService.tryLoginCodeFlow();
-          this.isAuthenticated$.next(true);
           console.log('✓ Successfully logged in from callback');
         }
       } catch (error) {
         console.warn('Code flow login failed:', error);
       }
 
-      this.isAuthenticated$.next(this.oauthService.hasValidAccessToken());
-      
+      this.isAuthenticatedSignal.set(this.oauthService.hasValidAccessToken());
+
       if (this.hasValidToken()) {
-        try {
-          await this.loadUserInfo().toPromise();
-        } catch (error) {
-          console.error('Failed to load user info:', error);
-        }
+        this.userInfoSignal.set(this.extractUserInfo());
       }
     } catch (error) {
       console.error('Auth initialization failed:', error);
+    } finally {
+      this.isInitializingSignal.set(false);
     }
   }
 
   private isCodeInUrl(): boolean {
-    return window.location.search.includes('code=') || 
+    return window.location.search.includes('code=') ||
            window.location.hash.includes('code=');
   }
 
   async login(): Promise<void> {
     try {
       console.log('🔐 AuthService.login() called');
-      console.log('✓ OAuthService exists?', !!this.oauthService);
-      console.log('Discovery doc loaded?', this.oauthService.discoveryDocumentLoaded);
-      
+
       // Ensure discovery document is loaded
       if (!this.oauthService.discoveryDocumentLoaded) {
         console.log('⏳ Loading discovery document before login...');
@@ -87,13 +81,9 @@ export class AuthService {
           return;
         }
       }
-      
+
       console.log('🚀 About to call initCodeFlow()...');
-      console.log('  - clientId:', this.oauthService.clientId);
-      console.log('  - redirectUri:', this.oauthService.redirectUri);
-      
       this.oauthService.initCodeFlow();
-      
       console.log('✓ initCodeFlow() called - redirect should happen now');
     } catch (error) {
       console.error('❌ Login failed with exception:', error);
@@ -103,36 +93,21 @@ export class AuthService {
 
   logout(): void {
     this.oauthService.logOut();
-    this.userInfo$.next(null);
-    this.isAuthenticated$.next(false);
+    this.userInfoSignal.set(null);
+    this.isAuthenticatedSignal.set(false);
   }
 
   hasValidToken(): boolean {
     return this.oauthService.hasValidAccessToken();
   }
 
-  getIsAuthenticated(): Observable<boolean> {
-    return this.isAuthenticated$.asObservable();
-  }
-
-  getUserInfo(): Observable<UserInfo | null> {
-    return this.userInfo$.asObservable();
-  }
-
-  private loadUserInfo(): Observable<UserInfo> {
-    const headers = new HttpHeaders({
-      Authorization: `Bearer ${this.oauthService.getAccessToken()}`,
-    });
-
-    return this.http.get<UserInfo>('/api/auth/user', { headers }).pipe(
-      tap((userInfo) => {
-        this.userInfo$.next(userInfo);
-        this.isAuthenticated$.next(true);
-      })
-    );
-  }
-
-  refreshUserInfo(): Observable<UserInfo> {
-    return this.loadUserInfo();
+  private extractUserInfo(): UserInfo {
+    const claims: any = this.oauthService.getIdentityClaims() ?? {};
+    return {
+      name: claims['name'] ?? '',
+      email: claims['preferred_username'] ?? claims['email'] ?? '',
+      id: claims['sub'] ?? claims['oid'] ?? '',
+      groups: claims['groups'] ?? [],
+    };
   }
 }

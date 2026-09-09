@@ -1,9 +1,9 @@
 import { Component, OnInit, signal } from '@angular/core';
-import { RouterOutlet, RouterLink } from '@angular/router';
+import { RouterOutlet } from '@angular/router';
 import { AuthService } from './auth.service';
 
 @Component({
-  imports: [RouterOutlet, RouterLink],
+  imports: [RouterOutlet],
   selector: 'app-root',
   styleUrl: './app.scss',
   templateUrl: './app.html',
