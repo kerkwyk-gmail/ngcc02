@@ -4,14 +4,15 @@ on:
   push:
     branches: [main]
 
+
 env:
-  GCP_PROJECT_ID: ngcc02-poc
+  GCP_PROJECT_ID: ngcc03-poc
+  WORKLOAD_IDENTITY_PROVIDER: projects/867508042566/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+  DEPLOYER_SA: github-actions-deployer@ngcc03-poc.iam.gserviceaccount.com
   GCP_REGION: us-central1
   ARTIFACT_REPO: app-images
   IMAGE_NAME: onboarding-app
-  SERVICE_NAME: onboarding-app
-  WORKLOAD_IDENTITY_PROVIDER: projects/526946104361/locations/global/workloadIdentityPools/github-pool/providers/github-provider
-  DEPLOYER_SA: github-actions-deployer@ngcc02-poc.iam.gserviceaccount.com
+  SERVICE_NAME: ngcc03-app
 
 permissions:
   contents: read
